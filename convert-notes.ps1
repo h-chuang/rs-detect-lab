@@ -59,6 +59,14 @@ foreach ($f in $docx) {
     $docxInDir = @(Get-ChildItem $dir -Filter *.docx -File).Count
     $mediaOpt  = if ($docxInDir -gt 1) { $base } else { "." }
 
+    # 转换前清掉上次生成的图片文件夹。
+    # 否则删掉笔记里的图片后，旧图片会作为「孤儿文件」残留下来，越积越多。
+    # 图片内容没变的那些，重新提取后字节完全相同，git 不会记为新改动。
+    $mediaDir = if ($mediaOpt -eq ".") { Join-Path $dir "media" } else { Join-Path $dir "$base\media" }
+    if (Test-Path -LiteralPath $mediaDir) {
+        Remove-Item -LiteralPath $mediaDir -Recurse -Force
+    }
+
     Push-Location $dir
     try {
         & $pandoc $f.Name -t gfm -o "$base.md" --extract-media=$mediaOpt 2>&1 | Out-Null
